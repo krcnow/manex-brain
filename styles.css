@@ -1,0 +1,336 @@
+.manex-study-room-panel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.manex-scroll-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px 20px 8px;
+}
+
+.manex-panel-header h2 {
+  margin: 0 0 6px;
+}
+
+.manex-panel-header p,
+.manex-empty span,
+.manex-context-card span {
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.manex-panel-header p {
+  margin: 0;
+}
+
+.manex-vault-status {
+  margin-top: 4px;
+  color: var(--text-faint);
+  font-size: var(--font-ui-smaller);
+}
+
+.manex-workspace-status,
+.manex-settings-status {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+}
+
+.manex-workspace-status span,
+.manex-settings-status strong {
+  font-weight: 700;
+}
+
+.manex-workspace-status small,
+.manex-settings-status p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.manex-workspace-status button {
+  justify-self: start;
+  margin-top: 4px;
+}
+
+.manex-entitlement-card {
+  display: grid;
+  gap: 4px;
+  margin-top: 10px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 28%, var(--background-modifier-border));
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--interactive-accent) 8%, var(--background-secondary));
+}
+
+.manex-entitlement-card.is-active {
+  border-color: color-mix(in srgb, var(--color-green) 45%, var(--background-modifier-border));
+  background: color-mix(in srgb, var(--color-green) 8%, var(--background-secondary));
+}
+
+.manex-entitlement-card span {
+  font-weight: 800;
+}
+
+.manex-entitlement-card small {
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+.manex-entitlement-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.manex-entitlement-actions button {
+  white-space: nowrap;
+}
+
+.manex-settings-entitlement {
+  border-color: color-mix(in srgb, var(--interactive-accent) 30%, var(--background-modifier-border));
+}
+
+.manex-settings-entitlement.is-active {
+  border-color: color-mix(in srgb, var(--color-green) 45%, var(--background-modifier-border));
+}
+
+.manex-chat-toolbar .setting-item {
+  align-items: flex-start;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.manex-chat-toolbar .setting-item-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.manex-chat-toolbar button,
+.manex-message-actions button,
+.manex-chat-form button {
+  white-space: nowrap;
+}
+
+.manex-context-card {
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--background-secondary);
+}
+
+.manex-context-card .manex-graph-context {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.35;
+}
+
+.manex-chat-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 220px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.manex-empty {
+  display: grid;
+  gap: 6px;
+  border: 1px dashed var(--background-modifier-border);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: left;
+}
+
+.manex-message {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--background-primary);
+}
+
+.manex-message-user {
+  align-self: flex-end;
+  max-width: 92%;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.manex-message-assistant {
+  align-self: flex-start;
+  max-width: 96%;
+}
+
+.manex-message.is-error {
+  border-color: var(--text-error);
+}
+
+.manex-message.is-error .manex-upgrade-box {
+  border-color: color-mix(in srgb, var(--interactive-accent) 36%, var(--background-modifier-border));
+}
+
+.manex-message-label {
+  margin-bottom: 6px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.manex-message-user .manex-message-label {
+  color: color-mix(in srgb, var(--text-on-accent) 72%, transparent);
+}
+
+.manex-message-text {
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.manex-message-text > :first-child {
+  margin-top: 0;
+}
+
+.manex-message-text > :last-child {
+  margin-bottom: 0;
+}
+
+.manex-message-text h1,
+.manex-message-text h2,
+.manex-message-text h3 {
+  margin: 12px 0 6px;
+  font-size: var(--font-ui-medium);
+  line-height: 1.25;
+}
+
+.manex-message-text p,
+.manex-message-text ul,
+.manex-message-text ol {
+  margin: 6px 0;
+}
+
+.manex-message-text li {
+  margin: 4px 0;
+}
+
+.manex-message-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.manex-message-meta span {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 999px;
+  padding: 2px 8px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  line-height: 1.4;
+}
+
+.manex-sources {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  border-top: 1px solid var(--background-modifier-border);
+  padding-top: 10px;
+}
+
+.manex-sources span {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.manex-sources p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.4;
+}
+
+.manex-message-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.manex-upgrade-box {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--interactive-accent) 8%, var(--background-secondary));
+}
+
+.manex-upgrade-box p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.manex-upgrade-box button {
+  justify-self: start;
+}
+
+.manex-chat-form {
+  display: grid;
+  flex-shrink: 0;
+  gap: 8px;
+  border-top: 1px solid var(--background-modifier-border);
+  padding: 10px 20px 16px;
+  background: var(--background-primary);
+}
+
+.manex-chat-form textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.manex-chat-form button {
+  justify-self: end;
+}
+
+.manex-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.manex-actions .setting-item {
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.manex-memory-textarea {
+  width: 100%;
+  min-height: 160px;
+}

@@ -1,0 +1,20 @@
+{
+  "name": "manex-brain",
+  "version": "1.0.0",
+  "description": "Local AI brain for your Obsidian vault using Apple Silicon MLX.",
+  "main": "main.js",
+  "scripts": {
+    "check": "node --check main.js",
+    "pack": "zip -r manex-brain.zip manifest.json versions.json main.js styles.css README.md LICENSE"
+  },
+  "keywords": [
+    "obsidian",
+    "ai",
+    "mlx",
+    "local-ai",
+    "knowledge-management"
+  ],
+  "author": "Manex",
+  "license": "MIT",
+  "devDependencies": {}
+}
