@@ -184,7 +184,34 @@ class ManexStudyRoomPlugin extends Plugin {
     for (const p of candidates) {
       try { fs.accessSync(p, fs.constants.X_OK); return p; } catch {}
     }
-    return "python3";
+    return null;
+  }
+
+  findHomebrew() {
+    const fs = require("fs");
+    const candidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"];
+    for (const p of candidates) {
+      try { fs.accessSync(p, fs.constants.X_OK); return p; } catch {}
+    }
+    return null;
+  }
+
+  async ensurePython() {
+    const python = this.findSystemPython();
+    if (python) return python;
+
+    const brew = this.findHomebrew();
+    if (brew) {
+      new Notice("Manex Brain: Python not found — installing via Homebrew (this may take a few minutes)…");
+      await this.runCommand(brew, ["install", "python3"]);
+      const installed = this.findSystemPython();
+      if (installed) return installed;
+      throw new Error("Python installed but still not found — restart Obsidian and try again.");
+    }
+
+    throw new Error(
+      "Python 3 is required but not installed. Install it from https://python.org or via Homebrew (brew install python), then restart Obsidian."
+    );
   }
 
   getVenvPath() {
@@ -216,7 +243,7 @@ class ManexStudyRoomPlugin extends Plugin {
   async ensureVenvReady() {
     const fs = require("fs");
     const venvPython = this.getVenvPython();
-    const systemPython = this.findSystemPython();
+    const systemPython = await this.ensurePython();
     console.log(`[Study Room] System Python: ${systemPython}`);
 
     if (!fs.existsSync(venvPython)) {
