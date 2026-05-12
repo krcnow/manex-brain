@@ -334,3 +334,21 @@
   width: 100%;
   min-height: 160px;
 }
+
+.manex-code-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 14px;
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-secondary);
+}
+
+.manex-code-row code {
+  flex: 1;
+  font-size: var(--font-ui-smaller);
+  word-break: break-all;
+  background: none;
+}

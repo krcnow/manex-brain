@@ -209,9 +209,8 @@ class ManexStudyRoomPlugin extends Plugin {
       throw new Error("Python installed but still not found — restart Obsidian and try again.");
     }
 
-    throw new Error(
-      "Python 3 is required but not installed. Install it from https://python.org or via Homebrew (brew install python), then restart Obsidian."
-    );
+    new PythonSetupModal(this.app).open();
+    throw new Error("Python 3 not found. See the setup instructions in the Manex Brain dialog.");
   }
 
   getVenvPath() {
@@ -1011,6 +1010,48 @@ class ManexStudyRoomView extends ItemView {
     }
     return groups.reverse();
   }
+}
+
+class PythonSetupModal extends Modal {
+  onOpen() {
+    const { contentEl } = this;
+    contentEl.empty();
+    contentEl.createEl("h2", { text: "Python 3 Required" });
+    contentEl.createEl("p", {
+      text: "Manex Brain needs Python 3 to run the local AI model. Follow the steps below to get set up."
+    });
+
+    contentEl.createEl("h3", { text: "Step 1 — Install Homebrew" });
+    contentEl.createEl("p", { text: "Homebrew is a package manager for macOS. Paste this into Terminal:" });
+    const brewCmd = `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`;
+    this._codeRow(contentEl, brewCmd, "Copy Homebrew install command");
+
+    contentEl.createEl("h3", { text: "Step 2 — Install Python" });
+    contentEl.createEl("p", { text: "Once Homebrew is installed, run this in Terminal:" });
+    this._codeRow(contentEl, "brew install python3", "Copy Python install command");
+
+    contentEl.createEl("h3", { text: "Step 3 — Restart Obsidian" });
+    contentEl.createEl("p", { text: "After Python is installed, restart Obsidian and Manex Brain will start automatically." });
+
+    const buttonRow = contentEl.createDiv({ cls: "manex-entitlement-actions" });
+    buttonRow.createEl("button", { text: "Open brew.sh" }).addEventListener("click", () => {
+      window.open("https://brew.sh", "_blank");
+    });
+    buttonRow.createEl("button", { text: "Close" }).addEventListener("click", () => this.close());
+  }
+
+  _codeRow(container, cmd, label) {
+    const wrap = container.createDiv({ cls: "manex-code-row" });
+    wrap.createEl("code", { text: cmd });
+    const btn = wrap.createEl("button", { text: label });
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(cmd);
+      btn.setText("Copied!");
+      setTimeout(() => btn.setText(label), 2000);
+    });
+  }
+
+  onClose() { this.contentEl.empty(); }
 }
 
 class MemoryModal extends Modal {
