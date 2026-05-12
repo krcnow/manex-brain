@@ -74,6 +74,8 @@ class ManexStudyRoomPlugin extends Plugin {
     this.addSettingTab(new ManexStudyRoomSettingTab(this.app, this));
 
     this.mlxProcess = null;
+    this.mlxReady = false;
+    this.mlxStarting = false;
     this.unloading = false;
     this.vaultIndex = {};
     this.vaultIndexProgress = { indexed: 0, total: 0, done: false };
@@ -273,24 +275,41 @@ class ManexStudyRoomPlugin extends Plugin {
     return proc;
   }
 
+  notifyViews() {
+    this.app.workspace.getLeavesOfType(VIEW_TYPE_MANEX_STUDY_ROOM)
+      .forEach((leaf) => { if (leaf.view instanceof ManexStudyRoomView) leaf.view.render(); });
+  }
+
   async startMlxBackend() {
-    if (await this.checkMlxServer()) return;
+    if (await this.checkMlxServer()) {
+      this.mlxReady = true;
+      return;
+    }
+
+    this.mlxStarting = true;
+    this.notifyViews();
 
     try {
       const venvPython = await this.ensureVenvReady();
       this.mlxProcess = this.spawnMlxServer(venvPython);
-      new Notice("Study Room: Starting Qwen3-4B — downloading on first run (~2.3 GB)…");
+      new Notice("Manex Brain: Starting local AI model — downloading on first run (~2.3 GB)…");
 
       const ready = await this.waitForMlxServer();
+      this.mlxStarting = false;
       if (ready) {
-        new Notice("Study Room: MLX server ready.");
+        this.mlxReady = true;
+        new Notice("Manex Brain: AI model ready.");
+        this.notifyViews();
         this.app.workspace.getLeavesOfType(VIEW_TYPE_MANEX_STUDY_ROOM)
           .forEach((leaf) => { if (leaf.view instanceof ManexStudyRoomView) leaf.view.embedContext(); });
       } else {
-        new Notice("Study Room: MLX server is still loading — answers will work once the model is ready.");
+        new Notice("Manex Brain: Model is taking longer than expected — it will be ready soon.");
+        this.notifyViews();
       }
     } catch (err) {
-      new Notice(`Study Room: Could not start MLX server — ${err.message}`);
+      this.mlxStarting = false;
+      this.notifyViews();
+      new Notice(`Manex Brain: Could not start AI model — ${err.message}`);
       console.error("[Study Room] MLX startup error:", err);
     }
   }
@@ -425,7 +444,7 @@ class ManexStudyRoomPlugin extends Plugin {
         })
       });
     } catch (err) {
-      throw new Error(`MLX server not reachable at ${baseUrl}. Start it with: mlx_lm.server --model <model-path>`);
+      throw new Error("mlx_not_ready");
     }
 
     if (!response.ok) {
@@ -838,12 +857,14 @@ class ManexStudyRoomView extends ItemView {
         sources: result.sources || []
       });
     } catch (error) {
-      this.messages.push({
-        role: "assistant",
-        text: `Could not answer: ${error.message || "Check that the MLX server is running."}`,
-        error: true,
-        createdAt: Date.now()
-      });
+      const isNotReady = error.message === "mlx_not_ready";
+      const starting = this.plugin.mlxStarting;
+      const text = isNotReady
+        ? starting
+          ? "The AI model is still loading — please wait a moment and try again."
+          : "The AI model is not running. It should start automatically — please wait a moment and try again."
+        : `Could not answer: ${error.message}`;
+      this.messages.push({ role: "assistant", text, error: true, createdAt: Date.now() });
     } finally {
       this.busy = false;
       this.render();
@@ -918,9 +939,16 @@ class ManexStudyRoomView extends ItemView {
         ? `${vp.total} notes indexed`
         : "";
 
+    const mlxStatus = this.plugin.mlxStarting
+      ? "AI model loading — please wait…"
+      : this.plugin.mlxReady
+        ? ""
+        : "AI model not ready — starting…";
+
     const header = scroll.createDiv({ cls: "manex-panel-header" });
     header.createEl("h2", { text: "Manex Brain" });
-    if (vaultStatus) header.createEl("p", { text: vaultStatus, cls: "manex-vault-status" });
+    if (mlxStatus) header.createEl("p", { text: mlxStatus, cls: "manex-vault-status" });
+    else if (vaultStatus) header.createEl("p", { text: vaultStatus, cls: "manex-vault-status" });
 
     const chat = scroll.createDiv({ cls: "manex-chat-log" });
     if (!this.messages.length) {

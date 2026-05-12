@@ -1,7 +1,7 @@
 {
   "id": "manex-brain",
   "name": "Manex Brain",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "minAppVersion": "1.5.0",
   "description": "Local AI brain for your vault. Indexes all your notes and answers questions privately using a local Apple Silicon MLX model — no cloud, no API keys.",
   "author": "Manex",
