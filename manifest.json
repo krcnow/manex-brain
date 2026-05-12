@@ -3,7 +3,7 @@
   "name": "Manex Brain",
   "version": "1.0.0",
   "minAppVersion": "1.5.0",
-  "description": "Local AI brain for your Obsidian vault. Indexes all your notes and answers questions privately using a local Apple Silicon MLX model — no cloud, no API keys.",
+  "description": "Local AI brain for your vault. Indexes all your notes and answers questions privately using a local Apple Silicon MLX model — no cloud, no API keys.",
   "author": "Manex",
   "authorUrl": "https://manex.app",
   "fundingUrl": "https://manex.app",
