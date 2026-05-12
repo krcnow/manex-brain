@@ -74,8 +74,6 @@ class ManexStudyRoomPlugin extends Plugin {
     this.addSettingTab(new ManexStudyRoomSettingTab(this.app, this));
 
     this.mlxProcess = null;
-    this.mlxReady = false;
-    this.mlxStarting = false;
     this.unloading = false;
     this.vaultIndex = {};
     this.vaultIndexProgress = { indexed: 0, total: 0, done: false };
@@ -118,6 +116,7 @@ class ManexStudyRoomPlugin extends Plugin {
       this.mlxProcess.kill();
       this.mlxProcess = null;
     }
+    this.killPortProcess(this.getMlxPort()).catch(() => {});
   }
 
   async saveSettings() {
@@ -186,33 +185,7 @@ class ManexStudyRoomPlugin extends Plugin {
     for (const p of candidates) {
       try { fs.accessSync(p, fs.constants.X_OK); return p; } catch {}
     }
-    return null;
-  }
-
-  findHomebrew() {
-    const fs = require("fs");
-    const candidates = ["/opt/homebrew/bin/brew", "/usr/local/bin/brew"];
-    for (const p of candidates) {
-      try { fs.accessSync(p, fs.constants.X_OK); return p; } catch {}
-    }
-    return null;
-  }
-
-  async ensurePython() {
-    const python = this.findSystemPython();
-    if (python) return python;
-
-    const brew = this.findHomebrew();
-    if (brew) {
-      new Notice("Manex Brain: Python not found — installing via Homebrew (this may take a few minutes)…");
-      await this.runCommand(brew, ["install", "python3"]);
-      const installed = this.findSystemPython();
-      if (installed) return installed;
-      throw new Error("Python installed but still not found — restart Obsidian and try again.");
-    }
-
-    new PythonSetupModal(this.app).open();
-    throw new Error("Python 3 not found. See the setup instructions in the Manex Brain dialog.");
+    return "python3";
   }
 
   getVenvPath() {
@@ -244,7 +217,7 @@ class ManexStudyRoomPlugin extends Plugin {
   async ensureVenvReady() {
     const fs = require("fs");
     const venvPython = this.getVenvPython();
-    const systemPython = await this.ensurePython();
+    const systemPython = this.findSystemPython();
     console.log(`[Study Room] System Python: ${systemPython}`);
 
     if (!fs.existsSync(venvPython)) {
@@ -263,10 +236,25 @@ class ManexStudyRoomPlugin extends Plugin {
     return venvPython;
   }
 
+  killPortProcess(port) {
+    return new Promise((resolve) => {
+      execFile("lsof", ["-ti", `:${port}`], (err, stdout) => {
+        if (err || !stdout.trim()) return resolve();
+        const pids = stdout.trim().split("\n").filter(Boolean);
+        let remaining = pids.length;
+        for (const pid of pids) {
+          execFile("kill", ["-9", pid.trim()], () => {
+            if (--remaining === 0) resolve();
+          });
+        }
+      });
+    });
+  }
+
   spawnMlxServer(python) {
     const proc = spawn(
       python,
-      ["-m", "mlx_lm.server", "--model", MLX_MODEL, "--port", String(this.getMlxPort())],
+      ["-m", "mlx_lm", "server", "--model", MLX_MODEL, "--port", String(this.getMlxPort())],
       { stdio: "pipe" }
     );
     proc.on("error", (err) => console.error("[Study Room] MLX process error:", err));
@@ -275,41 +263,27 @@ class ManexStudyRoomPlugin extends Plugin {
     return proc;
   }
 
-  notifyViews() {
-    this.app.workspace.getLeavesOfType(VIEW_TYPE_MANEX_STUDY_ROOM)
-      .forEach((leaf) => { if (leaf.view instanceof ManexStudyRoomView) leaf.view.render(); });
-  }
-
   async startMlxBackend() {
-    if (await this.checkMlxServer()) {
-      this.mlxReady = true;
-      return;
-    }
+    if (await this.checkMlxServer()) return;
 
-    this.mlxStarting = true;
-    this.notifyViews();
+    await this.killPortProcess(this.getMlxPort());
+    await new Promise((r) => setTimeout(r, 500));
 
     try {
       const venvPython = await this.ensureVenvReady();
       this.mlxProcess = this.spawnMlxServer(venvPython);
-      new Notice("Manex Brain: Starting local AI model — downloading on first run (~2.3 GB)…");
+      new Notice("Study Room: Starting Qwen3-4B — downloading on first run (~2.3 GB)…");
 
       const ready = await this.waitForMlxServer();
-      this.mlxStarting = false;
       if (ready) {
-        this.mlxReady = true;
-        new Notice("Manex Brain: AI model ready.");
-        this.notifyViews();
+        new Notice("Study Room: MLX server ready.");
         this.app.workspace.getLeavesOfType(VIEW_TYPE_MANEX_STUDY_ROOM)
           .forEach((leaf) => { if (leaf.view instanceof ManexStudyRoomView) leaf.view.embedContext(); });
       } else {
-        new Notice("Manex Brain: Model is taking longer than expected — it will be ready soon.");
-        this.notifyViews();
+        new Notice("Study Room: MLX server is still loading — answers will work once the model is ready.");
       }
     } catch (err) {
-      this.mlxStarting = false;
-      this.notifyViews();
-      new Notice(`Manex Brain: Could not start AI model — ${err.message}`);
+      new Notice(`Study Room: Could not start MLX server — ${err.message}`);
       console.error("[Study Room] MLX startup error:", err);
     }
   }
@@ -444,7 +418,7 @@ class ManexStudyRoomPlugin extends Plugin {
         })
       });
     } catch (err) {
-      throw new Error("mlx_not_ready");
+      throw new Error(`MLX server not reachable at ${baseUrl}. Start it with: mlx_lm.server --model <model-path>`);
     }
 
     if (!response.ok) {
@@ -857,14 +831,12 @@ class ManexStudyRoomView extends ItemView {
         sources: result.sources || []
       });
     } catch (error) {
-      const isNotReady = error.message === "mlx_not_ready";
-      const starting = this.plugin.mlxStarting;
-      const text = isNotReady
-        ? starting
-          ? "The AI model is still loading — please wait a moment and try again."
-          : "The AI model is not running. It should start automatically — please wait a moment and try again."
-        : `Could not answer: ${error.message}`;
-      this.messages.push({ role: "assistant", text, error: true, createdAt: Date.now() });
+      this.messages.push({
+        role: "assistant",
+        text: `Could not answer: ${error.message || "Check that the MLX server is running."}`,
+        error: true,
+        createdAt: Date.now()
+      });
     } finally {
       this.busy = false;
       this.render();
@@ -939,16 +911,9 @@ class ManexStudyRoomView extends ItemView {
         ? `${vp.total} notes indexed`
         : "";
 
-    const mlxStatus = this.plugin.mlxStarting
-      ? "AI model loading — please wait…"
-      : this.plugin.mlxReady
-        ? ""
-        : "AI model not ready — starting…";
-
     const header = scroll.createDiv({ cls: "manex-panel-header" });
     header.createEl("h2", { text: "Manex Brain" });
-    if (mlxStatus) header.createEl("p", { text: mlxStatus, cls: "manex-vault-status" });
-    else if (vaultStatus) header.createEl("p", { text: vaultStatus, cls: "manex-vault-status" });
+    if (vaultStatus) header.createEl("p", { text: vaultStatus, cls: "manex-vault-status" });
 
     const chat = scroll.createDiv({ cls: "manex-chat-log" });
     if (!this.messages.length) {
@@ -1038,48 +1003,6 @@ class ManexStudyRoomView extends ItemView {
     }
     return groups.reverse();
   }
-}
-
-class PythonSetupModal extends Modal {
-  onOpen() {
-    const { contentEl } = this;
-    contentEl.empty();
-    contentEl.createEl("h2", { text: "Python 3 Required" });
-    contentEl.createEl("p", {
-      text: "Manex Brain needs Python 3 to run the local AI model. Follow the steps below to get set up."
-    });
-
-    contentEl.createEl("h3", { text: "Step 1 — Install Homebrew" });
-    contentEl.createEl("p", { text: "Homebrew is a package manager for macOS. Paste this into Terminal:" });
-    const brewCmd = `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`;
-    this._codeRow(contentEl, brewCmd, "Copy Homebrew install command");
-
-    contentEl.createEl("h3", { text: "Step 2 — Install Python" });
-    contentEl.createEl("p", { text: "Once Homebrew is installed, run this in Terminal:" });
-    this._codeRow(contentEl, "brew install python3", "Copy Python install command");
-
-    contentEl.createEl("h3", { text: "Step 3 — Restart Obsidian" });
-    contentEl.createEl("p", { text: "After Python is installed, restart Obsidian and Manex Brain will start automatically." });
-
-    const buttonRow = contentEl.createDiv({ cls: "manex-entitlement-actions" });
-    buttonRow.createEl("button", { text: "Open brew.sh" }).addEventListener("click", () => {
-      window.open("https://brew.sh", "_blank");
-    });
-    buttonRow.createEl("button", { text: "Close" }).addEventListener("click", () => this.close());
-  }
-
-  _codeRow(container, cmd, label) {
-    const wrap = container.createDiv({ cls: "manex-code-row" });
-    wrap.createEl("code", { text: cmd });
-    const btn = wrap.createEl("button", { text: label });
-    btn.addEventListener("click", () => {
-      navigator.clipboard.writeText(cmd);
-      btn.setText("Copied!");
-      setTimeout(() => btn.setText(label), 2000);
-    });
-  }
-
-  onClose() { this.contentEl.empty(); }
 }
 
 class MemoryModal extends Modal {
